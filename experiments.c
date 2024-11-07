@@ -11,10 +11,10 @@
 
 void	server_handler(int signum, siginfo_t *signal, void *data)
 {
-	static uint32_t	sigcount	= 0;
+	static uint32_t	sigcount = 0;
 	static uint32_t	packet_size = 0;
 	static bool		size_recieved = false;
-	static char 	*packet = NULL;
+	static char		*packet = NULL;
 
 	(void)data;
 	if (size_recieved == false)
@@ -62,7 +62,7 @@ static int	send_bit(int bit)
 
 void	send_message(int pid, char *packet)
 {
-	int packet_size;
+	int	packet_size;
 	int	i;
 	int	j;
 
@@ -89,9 +89,9 @@ void	send_message(int pid, char *packet)
 
 int	main(int argc, char **argv)
 {
-	pid_t 				pid;
+	pid_t				pid;
 	struct sigaction	sig_act;
-	
+
 	if (SERVER)
 	{
 		pid = getpid();
@@ -109,7 +109,7 @@ int	main(int argc, char **argv)
 			return (printf("<USAGE> %s [server PID] [packet]", argv[0]));
 		signal(SIGUSR1, client_handler);
 		signal(SIGUSR2, client_handler);
-		printf("%ld %s\n",strlen(argv[2]), argv[2]);
+		printf("%ld %s\n", strlen(argv[2]), argv[2]);
 		send_message(atoi(argv[1]), argv[2]);
 		pause();
 	}
