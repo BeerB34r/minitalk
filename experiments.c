@@ -34,7 +34,7 @@ void	server_handler(int signum, siginfo_t *signal, void *data)
 		packet[(sigcount - 32) / 8] += (signum == SIGUSR2);
 		if (((++sigcount - 32) / 8) != packet_size)
 			return ;
-		printf("%s\n", packet);
+		write(1, packet, packet_size);
 		free(packet);
 		packet = NULL;
 		size_recieved = false;
@@ -109,7 +109,6 @@ int	main(int argc, char **argv)
 			return (printf("<USAGE> %s [server PID] [packet]", argv[0]));
 		signal(SIGUSR1, client_handler);
 		signal(SIGUSR2, client_handler);
-		printf("%ld %s\n", strlen(argv[2]), argv[2]);
 		send_message(atoi(argv[1]), argv[2]);
 		pause();
 	}
