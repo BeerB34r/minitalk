@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                         ::::::::           */
+/*   experiments.c                                       :+:    :+:           */
+/*                                                      +:+                   */
+/*   By: mde-beer <marvin@42.fr>                       +#+                    */
+/*                                                    +#+                     */
+/*   Created: 2024/11/07 11:03:24 by mde-beer       #+#    #+#                */
+/*   Updated: 2024/11/07 17:47:38 by mde-beer       ########   odam.nl        */
+/*                                                                            */
+/* ************************************************************************** */
+
 //#include <minitalk.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -9,78 +21,108 @@
 #include <stddef.h>
 #include <stdint.h>
 
+typedef struct s_packet
+{
+	uint32_t	sigcount;
+	uint32_t	size;
+	bool		size_recieved;
+	char		*content;
+}	t_packet;
+
+#define SLP_TIME 1
+
+volatile _Atomic bool	g_bit;
+
 void	server_handler(int signum, siginfo_t *signal, void *data)
 {
-	static uint32_t	sigcount = 0;
-	static uint32_t	packet_size = 0;
-	static bool		size_recieved = false;
-	static char		*packet = NULL;
+	static t_packet					packet = {0};
+	char							c;
 
 	(void)data;
-	if (size_recieved == false)
+	g_bit = (signum == SIGUSR2);
+	c = 0x30 + g_bit;
+	if (signum == SIGINT)
 	{
-		packet_size <<= 1;
-		packet_size += (signum == SIGUSR2);
-		if (++sigcount < 32)
+		packet = (t_packet){0};
+		write(2, "\npacket reset\n", 14);
+		return ;
+	}
+	if (packet.sigcount == 0)
+		write(2, "\nrecieving message...\n", 22);
+	write(2, &c, 1);
+	if (packet.size_recieved == false)
+	{
+		packet.size <<= 1;
+		packet.size += g_bit;
+		kill(signal->si_pid, SIGUSR2);
+		if (++packet.sigcount < 32)
 			return ;
-		size_recieved = true;
-		packet = calloc(packet_size + 1, sizeof(char));
-		if (!packet)
+		packet.size_recieved = true;
+		write(2, "|", 1);
+		packet.content = calloc(packet.size + 1, sizeof(char));
+		if (!packet.content)
 			return ;
 	}
 	else
 	{
-		packet[(sigcount - 32) / 8] <<= 1;
-		packet[(sigcount - 32) / 8] += (signum == SIGUSR2);
-		if (((++sigcount - 32) / 8) != packet_size)
+		packet.content[(packet.sigcount - 32) / 8] <<= 1;
+		packet.content[(packet.sigcount - 32) / 8] += g_bit;
+		usleep(1);
+		kill(signal->si_pid, SIGUSR2);
+		if (((++packet.sigcount - 32) / 8) < packet.size)
 			return ;
-		write(1, packet, packet_size);
-		free(packet);
-		packet = NULL;
-		size_recieved = false;
-		packet_size = 0;
-		sigcount = 0;
+		write(1, "\n", 1);
+		write(1, packet.content, packet.size);
+		free(packet.content);
+		packet = (t_packet){0};
 		kill(signal->si_pid, SIGUSR1);
+		return ;
 	}
 }
 
 void	client_handler(int sig)
 {
-	(void)sig;
-	write(1, "Message successfully delivered\n", 31);
+	g_bit = (sig == SIGUSR2);
+	if (g_bit)
+		return ;
+	write(1, "\nMessage successfully delivered\n", 32);
 	exit(0);
 }
 
-#define SLP_TIME 200
-
-static int	send_bit(int bit)
+static int	send_info(int info)
 {
-	if (bit)
+	if (info)
 		return (SIGUSR2);
 	return (SIGUSR1);
 }
 
 void	send_message(int pid, char *packet)
 {
-	int	packet_size;
-	int	i;
-	int	j;
+	int		packet_size;
+	int		i;
+	int		j;
+	char	c;
 
 	packet_size = strlen(packet);
 	i = -1;
 	while (++i < 32)
 	{
-		kill(pid, send_bit((packet_size >> (31 - i)) & 1));
-		usleep(SLP_TIME);
+		kill(pid, send_info((packet_size >> (31 - i)) & 1));
+		pause();
+		c = 0x30 + ((packet_size >> (31 - i)) & 1);
+		write(2, &c, 1);
 	}
 	i = -1;
+	write(2, "|", 1);
 	while (packet[++i])
 	{
 		j = -1;
 		while (++j < 8)
 		{
-			kill(pid, send_bit(((packet[i] >> (7 - j)) & 1)));
-			usleep(SLP_TIME);
+			kill(pid, send_info(((packet[i] >> (7 - j)) & 1)));
+			pause();
+			c = 0x30 + ((packet[i] >> (7 - j)) & 1);
+			write(2, &c, 1);
 		}
 	}
 	if (packet_size == 0)
@@ -97,9 +139,10 @@ int	main(int argc, char **argv)
 		pid = getpid();
 		printf("pid: %d\n", pid);
 		sig_act.sa_sigaction = &server_handler;
-		sig_act.sa_flags = (SA_SIGINFO);
+		sig_act.sa_flags = (SA_SIGINFO | SA_RESTART);
 		sigaction(SIGUSR1, &sig_act, NULL);
 		sigaction(SIGUSR2, &sig_act, NULL);
+		sigaction(SIGINT, &sig_act, NULL);
 		while (1)
 			pause();
 	}
