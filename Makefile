@@ -1,4 +1,4 @@
-SRC		= experiments.c
+SRC		= experiments2.c
 
 all		: server client
 
