@@ -5,8 +5,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <libft.h>
 
-volatile _Atomic int	g_msg_recieved[3] = {0};
+volatile int	g_msg_recieved[3] = {0};
 
 typedef struct s_packet
 {
@@ -29,17 +30,19 @@ void	get_size(const bool bit, t_packet *packet, int sender)
 
 void	get_char(const bool bit, t_packet *packet, int sender)
 {
+	int	signal;
+
 	packet->c = (packet->c << 1) | bit;
 	if (!(packet->sigcount % 8))
 		write(1, &(packet->c), 1);
-	if (packet->sigcount / 8 != packet->size)
+	signal = SIGUSR1;
+	if (packet->sigcount / 8 == packet->size)
 	{
-		kill(sender, SIGUSR1);
-		return ;
+		*packet = (t_packet){0};
+		write(1, "\n", 1);
+		signal = SIGUSR2;
 	}
-	*packet = (t_packet){0};
-	write(1, "\n", 1);
-	kill(sender, SIGUSR2);
+	kill(sender, signal);
 }
 
 void	message_handler(const bool bit, int sender_pid)
@@ -75,7 +78,7 @@ int	main(void)
 	sigemptyset(&handler.sa_mask);
 	sigaddset(&handler.sa_mask, SIGUSR1);
 	sigaddset(&handler.sa_mask, SIGUSR2);
-	printf("PID: %d\n", getpid());
+	ft_printf("PID: %d\n", getpid());
 	handler.sa_sigaction = server_handler;
 	handler.sa_flags = (SA_SIGINFO);
 	sigaction(SIGUSR1, &handler, NULL);
@@ -83,7 +86,7 @@ int	main(void)
 	while (true)
 	{
 		while (!g_msg_recieved[0])
-			pause();
+			usleep(1);
 		g_msg_recieved[0] = 0;
 		message_handler(g_msg_recieved[1], g_msg_recieved[2]);
 	}

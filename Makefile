@@ -1,11 +1,22 @@
-SRC		= experiments2.c
+CC			= cc
+CFLAGS		= -Wall -Wextra -Werror
 
-all		: server client
+CLIENTSRC	= client.c
+SERVERSRC	= server.c
+INCL		= -I ./libft/include -L ./libft -lft
+CLIENTOBJ	= $(CLIENTSRC:.c=.o)
+SERVEROBJ	= $(SERVERSRC:.c=.o)
 
-server	: $(SRC)
-		cc -Wall -Wextra -Werror -D SERVER=1 -g -D CLIENT=0 -o server $(SRC) $(INCL)
-client	: $(SRC)
-		cc -Wall -Wextra -Werror -D SERVER=0 -g -D CLIENT=1 -o client $(SRC) $(INCL)
+all			: server client
 
-test	: all
-		gnome-terminal -t minitalk --geometry=125x10 -- sh -c '$(shell pwd)/server; sleep 60'
+server		: $(SERVEROBJ)
+			$(CC) $(CFLAGS) -o $@ $^ $(INCL)
+client		: $(CLIENTOBJ)
+			$(CC) $(CFLAGS) -o $@ $^ $(INCL)
+%.o			: %.c
+			$(CC) $(CFLAGS) -c $^
+
+test		: all
+			gnome-terminal -t minitalk --geometry=125x10 -- sh -c '$(shell pwd)/server; sleep 60'
+
+.PHONY		: all
