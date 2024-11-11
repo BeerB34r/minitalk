@@ -1,18 +1,27 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                         ::::::::           */
+/*   client.c                                            :+:    :+:           */
+/*                                                      +:+                   */
+/*   By: mde-beer <marvin@42.fr>                       +#+                    */
+/*                                                    +#+                     */
+/*   Created: 2024/11/11 11:47:59 by mde-beer       #+#    #+#                */
+/*   Updated: 2024/11/11 11:48:10 by mde-beer       ########   odam.nl        */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include <signal.h>
-#include <stdint.h>
-#include <stdbool.h>
 #include <stdlib.h>
-#include <stdio.h>
+#include <stdint.h>
 #include <unistd.h>
-#include <string.h>
 #include <libft.h>
 
-volatile bool	g_msg_recieved = 0;
+volatile t_bool	g_msg_recieved = 0;
 
 void	send_bit(int pid, uint32_t val, uint32_t bit)
 {
 	const uint32_t	mask = 1 << bit;
-	const bool		sign = val & mask;
+	const t_bool	sign = val & mask;
 
 	if (sign)
 		kill(pid, SIGUSR2);
@@ -66,7 +75,7 @@ int	main(int argc, char **argv)
 	handler.sa_flags = (SA_SIGINFO | SA_RESTART);
 	sigaction(SIGUSR1, &handler, NULL);
 	sigaction(SIGUSR2, &handler, NULL);
-	send_message(server_pid, argv[2], strlen(argv[2]));
+	send_message(server_pid, argv[2], ft_strlen(argv[2]));
 	while (1)
 		pause();
 }

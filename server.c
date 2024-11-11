@@ -1,34 +1,35 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                         ::::::::           */
+/*   server.c                                            :+:    :+:           */
+/*                                                      +:+                   */
+/*   By: mde-beer <marvin@42.fr>                       +#+                    */
+/*                                                    +#+                     */
+/*   Created: 2024/11/11 11:44:48 by mde-beer       #+#    #+#                */
+/*   Updated: 2024/11/11 11:47:47 by mde-beer       ########   odam.nl        */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include <signal.h>
 #include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <unistd.h>
-#include <string.h>
 #include <libft.h>
+#include "minitalk.h"
 
 volatile int	g_msg_recieved[3] = {0};
 
-typedef struct s_packet
-{
-	unsigned int	sigcount;
-	bool			size_known;
-	uint32_t		size;
-	char			c;
-}	t_packet;
-
-void	get_size(const bool bit, t_packet *packet, int sender)
+void	mt_get_size(const t_bool bit, t_packet *packet, int sender)
 {
 	packet->size = (packet->size << 1) | bit;
 	if (packet->sigcount == 32)
 	{
-		packet->size_known = true;
+		packet->size_known = truey;
 		packet->sigcount = 0;
 	}
 	kill(sender, SIGUSR1);
 }
 
-void	get_char(const bool bit, t_packet *packet, int sender)
+void	mt_get_char(const t_bool bit, t_packet *packet, int sender)
 {
 	int	signal;
 
@@ -45,7 +46,7 @@ void	get_char(const bool bit, t_packet *packet, int sender)
 	kill(sender, signal);
 }
 
-void	message_handler(const bool bit, int sender_pid)
+void	message_handler(const t_bool bit, int sender_pid)
 {
 	static t_packet	packet = {0};
 	static int		sender = 0;
@@ -58,9 +59,9 @@ void	message_handler(const bool bit, int sender_pid)
 	}
 	packet.sigcount++;
 	if (!packet.size_known)
-		get_size(bit, &packet, sender);
+		mt_get_size(bit, &packet, sender);
 	else
-		get_char(bit, &packet, sender);
+		mt_get_char(bit, &packet, sender);
 }
 
 void	server_handler(int signum, siginfo_t *signal, void *context)
@@ -83,7 +84,7 @@ int	main(void)
 	handler.sa_flags = (SA_SIGINFO);
 	sigaction(SIGUSR1, &handler, NULL);
 	sigaction(SIGUSR2, &handler, NULL);
-	while (true)
+	while (truey)
 	{
 		while (!g_msg_recieved[0])
 			usleep(1);
